@@ -1,0 +1,79 @@
+diff --git a/dist/cjs/hooks/useNodeViewDescription.js b/dist/cjs/hooks/useNodeViewDescription.js
+index ae04a6eaddbc2cc6789e339c2327d3f6ee702e98..e9d6ffe309e7e1c2338334332c8c117ef0946cec 100644
+--- a/dist/cjs/hooks/useNodeViewDescription.js
++++ b/dist/cjs/hooks/useNodeViewDescription.js
+@@ -19,6 +19,13 @@ function useNodeViewDescription(getDOM, getContentDOM, constructor, props) {
+     const { view } = (0, _react.useContext)(_EditorContext.EditorContext);
+     const { parentRef, siblingsRef } = (0, _react.useContext)(_ChildDescriptionsContext.ChildDescriptionsContext);
+     const contentDOMRef = (0, _react.useRef)(null);
++    // Distinguishes "not yet mounted" from "mounted but the callback ref
++    // churned away": a self re-render detaches and reattaches an unstable
++    // callback ref, and the detach pass destroys the desc (getDOM() is
++    // null, so create() returns nothing). The reattach pass must recreate
++    // it; keying the refUpdated guard off viewDescRef alone mistakes that
++    // state for pre-mount and leaves the node unmapped.
++    const mountedRef = (0, _react.useRef)(false);
+     const viewDescRef = (0, _react.useRef)();
+     const childrenRef = (0, _react.useRef)([]);
+     const create = (0, _useEffectEvent.useEffectEvent)(()=>{
+@@ -86,8 +93,10 @@ function useNodeViewDescription(getDOM, getContentDOM, constructor, props) {
+         contentDOMRef.current = null;
+     });
+     (0, _useClientLayoutEffect.useClientLayoutEffect)(()=>{
++        mountedRef.current = true;
+         viewDescRef.current = create();
+         return ()=>{
++            mountedRef.current = false;
+             destroy();
+         };
+     }, [
+@@ -95,7 +104,7 @@ function useNodeViewDescription(getDOM, getContentDOM, constructor, props) {
+         destroy
+     ]);
+     const refUpdated = (0, _react.useCallback)(()=>{
+-        if (!viewDescRef.current) return;
++        if (!mountedRef.current) return;
+         if (!update()) {
+             destroy();
+             viewDescRef.current = create();
+diff --git a/dist/esm/hooks/useNodeViewDescription.js b/dist/esm/hooks/useNodeViewDescription.js
+index 30224e449c3d439e7b4825991a0040f23102a7da..2c1cec5f6891a0bca514c9b8ae6d8d9b06df59b3 100644
+--- a/dist/esm/hooks/useNodeViewDescription.js
++++ b/dist/esm/hooks/useNodeViewDescription.js
+@@ -9,6 +9,13 @@ export function useNodeViewDescription(getDOM, getContentDOM, constructor, props
+     const { view } = useContext(EditorContext);
+     const { parentRef, siblingsRef } = useContext(ChildDescriptionsContext);
+     const contentDOMRef = useRef(null);
++    // Distinguishes "not yet mounted" from "mounted but the callback ref
++    // churned away": a self re-render detaches and reattaches an unstable
++    // callback ref, and the detach pass destroys the desc (getDOM() is
++    // null, so create() returns nothing). The reattach pass must recreate
++    // it; keying the refUpdated guard off viewDescRef alone mistakes that
++    // state for pre-mount and leaves the node unmapped.
++    const mountedRef = useRef(false);
+     const viewDescRef = useRef();
+     const childrenRef = useRef([]);
+     const create = useEffectEvent(()=>{
+@@ -76,8 +83,10 @@ export function useNodeViewDescription(getDOM, getContentDOM, constructor, props
+         contentDOMRef.current = null;
+     });
+     useClientLayoutEffect(()=>{
++        mountedRef.current = true;
+         viewDescRef.current = create();
+         return ()=>{
++            mountedRef.current = false;
+             destroy();
+         };
+     }, [
+@@ -85,7 +94,7 @@ export function useNodeViewDescription(getDOM, getContentDOM, constructor, props
+         destroy
+     ]);
+     const refUpdated = useCallback(()=>{
+-        if (!viewDescRef.current) return;
++        if (!mountedRef.current) return;
+         if (!update()) {
+             destroy();
+             viewDescRef.current = create();
+diff --git a/src/tiptap/README.md b/src/tiptap/README.md
+deleted file mode 100644
+index 72f4b2501664b3eda609bc6bad8eb14dac2995f2..0000000000000000000000000000000000000000

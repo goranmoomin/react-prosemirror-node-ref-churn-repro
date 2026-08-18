@@ -1,0 +1,30 @@
+{
+  "name": "react-prosemirror-node-ref-churn-repro",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Minimal repro: react-prosemirror permanently loses a node view's view desc when the node view re-renders on its own with an unstable callback ref (issue #276).",
+  "scripts": {
+    "dev": "vite --port 5302 --strictPort --host 127.0.0.1",
+    "test": "playwright test",
+    "patch": "node scripts/toggle-patch.mjs on",
+    "unpatch": "node scripts/toggle-patch.mjs off"
+  },
+  "dependencies": {
+    "@handlewithcare/react-prosemirror": "3.2.7",
+    "prosemirror-model": "^1.25.0",
+    "prosemirror-state": "^1.4.3",
+    "prosemirror-view": "1.42.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-reconciler": "^0.29.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0"
+  }
+}
