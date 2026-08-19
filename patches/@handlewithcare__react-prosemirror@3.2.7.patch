@@ -1,26 +1,55 @@
 diff --git a/dist/cjs/hooks/useNodeViewDescription.js b/dist/cjs/hooks/useNodeViewDescription.js
-index ae04a6e..cd5d9ef 100644
 --- a/dist/cjs/hooks/useNodeViewDescription.js
 +++ b/dist/cjs/hooks/useNodeViewDescription.js
-@@ -94,8 +94,17 @@ function useNodeViewDescription(getDOM, getContentDOM, constructor, props) {
+@@ -19,6 +19,19 @@
+     const { view } = (0, _react.useContext)(_EditorContext.EditorContext);
+     const { parentRef, siblingsRef } = (0, _react.useContext)(_ChildDescriptionsContext.ChildDescriptionsContext);
+     const contentDOMRef = (0, _react.useRef)(null);
++    // Tracks the mount layout effect's lifecycle. refUpdated must be inert
++    // between that effect's cleanup and its next run: React detaches and
++    // reattaches callback refs around a simulated remount (StrictMode,
++    // Activity), and in that window viewDescRef still points at the
++    // destroyed desc, so update() can misjudge it and register a
++    // replacement that the effect's unconditional create() then orphans in
++    // the parent's children, corrupting position mapping. Guarding on
++    // viewDescRef alone gets the other direction wrong: a ref reattach
++    // after callback ref churn (#276) finds it empty and never recreates
++    // the desc. While mounted, every destroy is immediately followed by a
++    // create, so viewDescRef only ever holds a live desc and update() can
++    // be trusted.
++    const mountedRef = (0, _react.useRef)(false);
+     const viewDescRef = (0, _react.useRef)();
+     const childrenRef = (0, _react.useRef)([]);
+     const create = (0, _useEffectEvent.useEffectEvent)(()=>{
+@@ -86,16 +99,26 @@
+         contentDOMRef.current = null;
+     });
+     (0, _useClientLayoutEffect.useClientLayoutEffect)(()=>{
++        mountedRef.current = true;
+         viewDescRef.current = create();
+         return ()=>{
++            mountedRef.current = false;
+             destroy();
+         };
+     }, [
          create,
          destroy
      ]);
 +    // React detaches a replaced callback ref by calling it with null
-+    // before attaching its successor, so a null DOM here is always
++    // before attaching its successor, so while mounted a null DOM here is
 +    // transient: the attach pass that follows re-syncs the desc, and a
 +    // real unmount destroys it in the layout effect cleanup. Tearing the
-+    // desc down on the detach pass would destroy and recreate it (or, if
-+    // no effect re-runs this render, lose it outright, #276) even though
-+    // the DOM never changed.
++    // desc down on the detach pass would destroy and recreate it even
++    // though the DOM never changed.
 +    const domDetached = (0, _useEffectEvent.useEffectEvent)(()=>getDOM() == null);
      const refUpdated = (0, _react.useCallback)(()=>{
-         if (!viewDescRef.current) return;
+-        if (!viewDescRef.current) return;
++        if (!mountedRef.current) return;
 +        if (domDetached()) return;
          if (!update()) {
              destroy();
              viewDescRef.current = create();
-@@ -103,6 +112,7 @@ function useNodeViewDescription(getDOM, getContentDOM, constructor, props) {
+@@ -103,6 +126,7 @@
      }, [
          create,
          destroy,
@@ -29,28 +58,57 @@ index ae04a6e..cd5d9ef 100644
      ]);
      (0, _useClientLayoutEffect.useClientLayoutEffect)(()=>{
 diff --git a/dist/esm/hooks/useNodeViewDescription.js b/dist/esm/hooks/useNodeViewDescription.js
-index 30224e4..6ff8ee6 100644
 --- a/dist/esm/hooks/useNodeViewDescription.js
 +++ b/dist/esm/hooks/useNodeViewDescription.js
-@@ -84,8 +84,17 @@ export function useNodeViewDescription(getDOM, getContentDOM, constructor, props
+@@ -9,6 +9,19 @@
+     const { view } = useContext(EditorContext);
+     const { parentRef, siblingsRef } = useContext(ChildDescriptionsContext);
+     const contentDOMRef = useRef(null);
++    // Tracks the mount layout effect's lifecycle. refUpdated must be inert
++    // between that effect's cleanup and its next run: React detaches and
++    // reattaches callback refs around a simulated remount (StrictMode,
++    // Activity), and in that window viewDescRef still points at the
++    // destroyed desc, so update() can misjudge it and register a
++    // replacement that the effect's unconditional create() then orphans in
++    // the parent's children, corrupting position mapping. Guarding on
++    // viewDescRef alone gets the other direction wrong: a ref reattach
++    // after callback ref churn (#276) finds it empty and never recreates
++    // the desc. While mounted, every destroy is immediately followed by a
++    // create, so viewDescRef only ever holds a live desc and update() can
++    // be trusted.
++    const mountedRef = useRef(false);
+     const viewDescRef = useRef();
+     const childrenRef = useRef([]);
+     const create = useEffectEvent(()=>{
+@@ -76,16 +89,26 @@
+         contentDOMRef.current = null;
+     });
+     useClientLayoutEffect(()=>{
++        mountedRef.current = true;
+         viewDescRef.current = create();
+         return ()=>{
++            mountedRef.current = false;
+             destroy();
+         };
+     }, [
          create,
          destroy
      ]);
 +    // React detaches a replaced callback ref by calling it with null
-+    // before attaching its successor, so a null DOM here is always
++    // before attaching its successor, so while mounted a null DOM here is
 +    // transient: the attach pass that follows re-syncs the desc, and a
 +    // real unmount destroys it in the layout effect cleanup. Tearing the
-+    // desc down on the detach pass would destroy and recreate it (or, if
-+    // no effect re-runs this render, lose it outright, #276) even though
-+    // the DOM never changed.
++    // desc down on the detach pass would destroy and recreate it even
++    // though the DOM never changed.
 +    const domDetached = useEffectEvent(()=>getDOM() == null);
      const refUpdated = useCallback(()=>{
-         if (!viewDescRef.current) return;
+-        if (!viewDescRef.current) return;
++        if (!mountedRef.current) return;
 +        if (domDetached()) return;
          if (!update()) {
              destroy();
              viewDescRef.current = create();
-@@ -93,6 +102,7 @@ export function useNodeViewDescription(getDOM, getContentDOM, constructor, props
+@@ -93,6 +116,7 @@
      }, [
          create,
          destroy,

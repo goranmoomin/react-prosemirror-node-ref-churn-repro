@@ -15,11 +15,16 @@ recreates the desc. The element is left with `pmViewDesc === undefined`, so
 `posAtDOM`/`posFromDOM` fall back to the nearest ancestor desc and position
 mapping breaks for everything in and after the node.
 
-The proposed fix (in `patches/`) treats a null DOM in `refUpdated` as
-transient and does nothing: a detached callback ref is always followed
-either by a reattach in the same commit (which re-syncs the desc) or by the
-unmount cleanup (which destroys it). The desc survives ref churn untouched;
-no destroy/recreate cycle at all.
+The proposed fix (in `patches/`) adds two guards to `refUpdated`. A mounted
+flag makes it inert between the mount layout effect's cleanup and its next
+run: React detaches and reattaches callback refs around a simulated remount
+(StrictMode, Activity), and in that window `viewDescRef` still points at
+the destroyed desc, so acting on it can register a replacement that the
+effect's unconditional `create()` then orphans in the parent's children.
+And while mounted, a null DOM is treated as transient: a detached callback
+ref is always followed either by a reattach in the same commit (which
+re-syncs the desc) or by the unmount cleanup (which destroys it), so the
+desc survives ref churn untouched, with no destroy/recreate cycle.
 
 ## Reproduce by hand
 
