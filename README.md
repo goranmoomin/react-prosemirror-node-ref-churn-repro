@@ -15,9 +15,11 @@ recreates the desc. The element is left with `pmViewDesc === undefined`, so
 `posAtDOM`/`posFromDOM` fall back to the nearest ancestor desc and position
 mapping breaks for everything in and after the node.
 
-The proposed fix (in `patches/`) tracks mount state in a separate
-`mountedRef` so the guard only blocks genuine pre-mount calls; the reattach
-pass recreates and re-registers the desc.
+The proposed fix (in `patches/`) treats a null DOM in `refUpdated` as
+transient and does nothing: a detached callback ref is always followed
+either by a reattach in the same commit (which re-syncs the desc) or by the
+unmount cleanup (which destroys it). The desc survives ref churn untouched;
+no destroy/recreate cycle at all.
 
 ## Reproduce by hand
 
